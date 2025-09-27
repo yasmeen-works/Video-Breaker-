@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Breaker / كاسر الفيديو</title>
+<style>
+/* === Base Reset === */
+* { margin:0; padding:0; box-sizing:border-box; font-family:"Inter", system-ui, sans-serif; }
+html, body { height:100%; background-color:var(--bg); color:var(--text); transition:0.3s; }
+
+/* === Light & Dark Modes === */
+:root {
+  --bg:#f9f9f9; --card:#ffffff; --text:#222; --accent:#007bff; --border:#ddd;
+}
+[data-theme="dark"] {
+  --bg:#121212; --card:#1e1e1e; --text:#eee; --accent:#4da3ff; --border:#333;
+}
+
+/* === Layout === */
+body { padding:20px; display:flex; flex-direction:column; align-items:center; gap:24px; }
+h1 { font-size:1.8rem; font-weight:600; text-align:center; }
+
+/* Theme toggle button */
+#themeToggle { font-size:18px; padding:10px 16px; border-radius:50px; background:var(--accent); color:white; border:none; cursor:pointer; transition:0.3s; }
+#themeToggle:hover { filter: brightness(1.1); }
+
+/* Language toggle button */
+#langToggle { font-size:14px; padding:8px 14px; border-radius:8px; border:none; background:var(--accent); color:white; cursor:pointer; transition:0.3s; }
+#langToggle:hover { filter: brightness(1.1); }
+
+/* Viewer section */
+.viewer { display:grid; grid-template-columns:1fr 340px; gap:20px; width:100%; max-width:1100px; }
+.video-box, .gallery { background:var(--card); border-radius:12px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,0.08); border:1px solid var(--border); }
+video { width:100%; border-radius:8px; background:black; }
+
+/* Controls */
+.controls { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
+input[type="number"], button { padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:14px; cursor:pointer; transition:all 0.2s; }
+input[type="number"]:focus, button:hover { border-color:var(--accent); outline:none; }
+button { background:var(--accent); color:white; font-weight:500; }
+button:hover { filter: brightness(1.1); }
+
+/* File input */
+input[type="file"] { display:none; }
+.file-label { padding:10px 14px; border-radius:8px; background:var(--accent); color:white; font-weight:500; cursor:pointer; display:inline-block; transition:0.2s; }
+.file-label:hover { filter: brightness(1.1); }
+
+/* Tooltips */
+.tooltip { position:relative; display:inline-block; cursor:pointer; font-size:14px; color:var(--text); }
+.tooltip .tooltiptext { visibility:hidden; width:200px; background-color:var(--card); color:var(--text); text-align:center; border-radius:6px; padding:6px; position:absolute; z-index:1; bottom:125%; left:50%; transform:translateX(-50%); border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,0.15); font-size:12px; }
+.tooltip:hover .tooltiptext { visibility:visible; }
+
+/* Gallery */
+.gallery { display:flex; flex-direction:column; gap:12px; overflow-y:auto; max-height:70vh; }
+.thumb { display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--bg); padding:8px; border-radius:8px; }
+.thumb img { max-width:100px; height:auto; border-radius:6px; border:1px solid var(--border); }
+
+/* === Responsive === */
+@media (max-width:880px) { .viewer { grid-template-columns:1fr; } }
+@media (max-width:480px) { body{padding:12px;} h1{font-size:1.4rem;} .controls{flex-direction:column;} .controls input,.controls button,.file-label{width:100%;} .thumb img{max-width:72px;} }
+</style>
+</head>
+<body>
+
+<h1 id="title">🎬 Video Breaker</h1>
+<div style="display:flex; gap:10px;">
+  <button id="themeToggle">🌞</button>
+  <button id="langToggle">عربي</button>
+</div>
+
+<div class="viewer">
+  <div class="video-box">
+    <label class="file-label" for="fileInput" id="fileLabel">Choose Video</label>
+    <input type="file" id="fileInput" accept="video/*">
+    <video id="video" controls></video>
+    <div class="controls">
+      <div class="tooltip">
+        <input type="number" id="timeInput" placeholder="Time (s)">
+        <span class="tooltiptext" id="timeTooltip">Enter the time in seconds to capture a single frame.</span>
+      </div>
+      <button onclick="captureFrame()" id="captureBtn">Capture Frame</button>
+
+      <div class="tooltip">
+        <input type="number" id="intervalInput" placeholder="Interval (ms)">
+        <span class="tooltiptext" id="intervalTooltip">Time interval in milliseconds between frames for auto-extract.</span>
+      </div>
+      <button onclick="extractFrames()" id="extractBtn">Extract Frames</button>
+
+      <button onclick="clearGallery()" id="clearBtn">Clear</button>
+    </div>
+  </div>
+
+  <div class="gallery" id="gallery">
+    <p id="noFrames">No frames yet...</p>
+  </div>
+</div>
+
+<script>
+// Elements
+const video = document.getElementById("video");
+const fileInput = document.getElementById("fileInput");
+const gallery = document.getElementById("gallery");
+const timeInput = document.getElementById("timeInput");
+const intervalInput = document.getElementById("intervalInput");
+const toggleBtn = document.getElementById("themeToggle");
+const langBtn = document.getElementById("langToggle");
+
+// Language elements
+const title = document.getElementById("title");
+const fileLabel = document.getElementById("fileLabel");
+const timeTooltip = document.getElementById("timeTooltip");
+const intervalTooltip = document.getElementById("intervalTooltip");
+const captureBtn = document.getElementById("captureBtn");
+const extractBtn = document.getElementById("extractBtn");
+const clearBtn = document.getElementById("clearBtn");
+const noFrames = document.getElementById("noFrames");
+
+let currentLang = 'en'; // default
+
+// Language toggle
+langBtn.addEventListener("click", () => {
+  if(currentLang === 'en') {
+    currentLang = 'ar';
+    document.documentElement.setAttribute("dir","rtl");
+    title.textContent = "🎬 كاسر الفيديو";
+    fileLabel.textContent = "اختر فيديو";
+    timeInput.placeholder = "الوقت (ثواني)";
+    timeTooltip.textContent = "أدخل الوقت بالثواني لالتقاط إطار واحد.";
+    intervalInput.placeholder = "الفاصل (مللي ثانية)";
+    intervalTooltip.textContent = "الفاصل الزمني بالمللي ثانية بين الإطارات للاستخراج التلقائي.";
+    captureBtn.textContent = "التقاط إطار";
+    extractBtn.textContent = "استخراج الإطارات";
+    clearBtn.textContent = "مسح المعرض";
+    noFrames.textContent = "لا توجد إطارات بعد...";
+    langBtn.textContent = "English";
+  } else {
+    currentLang = 'en';
+    document.documentElement.setAttribute("dir","ltr");
+    title.textContent = "🎬 Video Breaker";
+    fileLabel.textContent = "Choose Video";
+    timeInput.placeholder = "Time (s)";
+    timeTooltip.textContent = "Enter the time in seconds to capture a single frame.";
+    intervalInput.placeholder = "Interval (ms)";
+    intervalTooltip.textContent = "Time interval in milliseconds between frames for auto-extract.";
+    captureBtn.textContent = "Capture Frame";
+    extractBtn.textContent = "Extract Frames";
+    clearBtn.textContent = "Clear";
+    noFrames.textContent = "No frames yet...";
+    langBtn.textContent = "عربي";
+  }
+});
+
+// File input trigger
+document.querySelector('.file-label').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener("change", e => { if(e.target.files[0]) video.src = URL.createObjectURL(e.target.files[0]); });
+
+// Capture single frame
+function captureFrame() {
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
+  addToGallery(canvas.toDataURL("image/png"), video.currentTime);
+}
+
+// Extract multiple frames
+function extractFrames() {
+  const interval = parseInt(intervalInput.value);
+  if(!interval) return alert(currentLang==='en'?"Enter interval in ms":"أدخل الفاصل بالمللي ثانية");
+  gallery.innerHTML = "";
+  let t=0;
+  function step(){
+    if(t>video.duration) return;
+    video.currentTime = t;
+    video.onseeked = ()=>{
+      captureFrame();
+      t += interval/1000;
+      step();
+    };
+  }
+  step();
+}
+
+// Add to gallery
+function addToGallery(src,time){
+  const div = document.createElement("div");
+  div.className="thumb";
+  const img = document.createElement("img");
+  img.src = src;
+  const a = document.createElement("a");
+  a.href = src;
+  a.download = `frame_${Math.round(time*1000)}ms.png`;
+  a.textContent = currentLang==='en'?"Download":"تحميل";
+  div.appendChild(img); div.appendChild(a);
+  gallery.appendChild(div);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Clear gallery
+function clearGallery() { gallery.innerHTML = `<p>${currentLang==='en'?"No frames yet...":"لا توجد إطارات بعد..."}</p>`; }
+
+// Theme toggle with emoji
+function setTheme(mode) {
+  document.documentElement.setAttribute("data-theme",mode);
+  localStorage.setItem("theme",mode);
+  toggleBtn.textContent = mode==='dark'?"🌙":"🌞";
+}
+toggleBtn.addEventListener("click",()=>{ const current=document.documentElement.getAttribute("data-theme"); setTheme(current==='dark'?'light':'dark'); });
+const saved = localStorage.getItem("theme");
+if(saved) setTheme(saved); else setTheme(window.matchMedia("(prefers-color-scheme: dark)").matches?'dark':'light');
+</script>
+</body>
+</html>
