@@ -17,6 +17,24 @@ html, body { height:100%; background-color:var(--bg); color:var(--text); transit
   --bg:#121212; --card:#1e1e1e; --text:#eee; --accent:#4da3ff; --border:#333;
 }
 
+
+<div class="landing-intro" style="text-align:center; max-width:700px; margin-bottom:20px;">
+  <h2 id="introTitle">Capture Every Frame of Your Favorite Videos!</h2>
+  <p id="introDesc">
+    🎬 Turn any video into a gallery of frames. Instantly capture, download, and save the moments you love — all in a sleek, minimal interface with dark & light modes.
+  </p>
+</div>
+
+
+
+
+
+
+
+
+
+  
+
 /* === Layout === */
 body { padding:20px; display:flex; flex-direction:column; align-items:center; gap:24px; }
 h1 { font-size:1.8rem; font-weight:600; text-align:center; }
@@ -118,6 +136,10 @@ const noFrames = document.getElementById("noFrames");
 
 let currentLang = 'en'; // default
 
+
+
+
+  
 // Language toggle
 langBtn.addEventListener("click", () => {
   if(currentLang === 'en') {
@@ -133,6 +155,9 @@ langBtn.addEventListener("click", () => {
     extractBtn.textContent = "استخراج الإطارات";
     clearBtn.textContent = "مسح المعرض";
     noFrames.textContent = "لا توجد إطارات بعد...";
+      document.getElementById("introTitle").textContent = "التقط كل إطار من فيديوهاتك المفضلة!";
+  document.getElementById("introDesc").textContent = "🎬 حول أي فيديو إلى معرض من الإطارات. التقط، حمل، واحفظ اللحظات التي تحبها — كل ذلك في واجهة أنيقة وبسيطة مع وضع الضوء والظلام.";
+
     langBtn.textContent = "English";
   } else {
     currentLang = 'en';
@@ -147,6 +172,9 @@ langBtn.addEventListener("click", () => {
     extractBtn.textContent = "Extract Frames";
     clearBtn.textContent = "Clear";
     noFrames.textContent = "No frames yet...";
+      document.getElementById("introTitle").textContent = "Capture Every Frame of Your Favorite Videos!";
+  document.getElementById("introDesc").textContent = "🎬 Turn any video into a gallery of frames. Instantly capture, download, and save the moments you love — all in a sleek, minimal interface with dark & light modes.";
+
     langBtn.textContent = "عربي";
   }
 });
@@ -226,3 +254,4 @@ if(saved) setTheme(saved); else setTheme(window.matchMedia("(prefers-color-schem
 </script>
 </body>
 </html>
+
